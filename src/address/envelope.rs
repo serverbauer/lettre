@@ -5,6 +5,50 @@ use crate::message::header::{self, Headers};
 #[cfg(feature = "builder")]
 use crate::message::{Mailbox, Mailboxes};
 
+/// The RET (Return) parameter for DSN
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum DsnRet {
+    /// Return the full message
+    Full,
+    /// Return only the headers
+    Hdrs,
+}
+
+impl std::fmt::Display for DsnRet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DsnRet::Full => write!(f, "FULL"),
+            DsnRet::Hdrs => write!(f, "HDRS"),
+        }
+    }
+}
+
+/// The NOTIFY parameter for DSN
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum DsnNotify {
+    /// Never notify
+    Never,
+    /// Notify on success
+    Success,
+    /// Notify on failure
+    Failure,
+    /// Notify on delay
+    Delay,
+}
+
+impl std::fmt::Display for DsnNotify {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DsnNotify::Never => write!(f, "NEVER"),
+            DsnNotify::Success => write!(f, "SUCCESS"),
+            DsnNotify::Failure => write!(f, "FAILURE"),
+            DsnNotify::Delay => write!(f, "DELAY"),
+        }
+    }
+}
+
 /// Simple email envelope representation
 ///
 /// We only accept mailboxes, and do not support source routes (as per RFC).
@@ -22,9 +66,9 @@ pub struct Envelope {
     /// The envelope sender address
     reverse_path: Option<Address>,
     /// SMTP DSN NOTIFY parameter
-    dsn_notify: Option<String>,
+    dsn_notify: Option<Vec<DsnNotify>>,
     /// SMTP DSN RET parameter
-    dsn_ret: Option<String>,
+    dsn_ret: Option<DsnRet>,
     /// SMTP DSN ENVID parameter
     dsn_envid: Option<String>,
 }
@@ -119,7 +163,12 @@ impl Envelope {
     }
 
     /// Builder method to add DSN parameters (NOTIFY, RET, and ENVID) to this envelope
-    pub fn with_dsn(mut self, notify: Option<String>, ret: Option<String>, envid: Option<String>) -> Self {
+    pub fn with_dsn(
+        mut self,
+        notify: Option<Vec<DsnNotify>>,
+        ret: Option<DsnRet>,
+        envid: Option<String>,
+    ) -> Self {
         self.dsn_notify = notify;
         self.dsn_ret = ret;
         self.dsn_envid = envid;
@@ -127,12 +176,12 @@ impl Envelope {
     }
 
     /// Gets the DSN NOTIFY parameter
-    pub fn dsn_notify(&self) -> Option<&String> {
+    pub fn dsn_notify(&self) -> Option<&Vec<DsnNotify>> {
         self.dsn_notify.as_ref()
     }
 
     /// Gets the DSN RET parameter
-    pub fn dsn_ret(&self) -> Option<&String> {
+    pub fn dsn_ret(&self) -> Option<&DsnRet> {
         self.dsn_ret.as_ref()
     }
 

@@ -17,8 +17,10 @@ use crate::{
         authentication::{Credentials, Mechanism},
         commands::{Auth, Data, Ehlo, Mail, Noop, Quit, Rcpt, Starttls},
         error::{self, Error},
-        extension::{ClientId, Extension, MailBodyParameter, MailParameter, RcptParameter, ServerInfo},
-        response::{parse_response, Response},
+        extension::{
+            ClientId, Extension, MailBodyParameter, MailParameter, RcptParameter, ServerInfo,
+        },
+        response::{Response, parse_response},
     },
 };
 
@@ -183,7 +185,7 @@ impl AsyncSmtpConnection {
         if let Some(ret) = envelope.dsn_ret() {
             mail_options.push(MailParameter::Other {
                 keyword: "RET".into(),
-                value: Some(ret.clone()),
+                value: Some(ret.to_string()),
             });
         }
 
@@ -204,13 +206,19 @@ impl AsyncSmtpConnection {
         for to_address in envelope.to() {
             let mut rcpt_options = vec![];
             if let Some(notify) = envelope.dsn_notify() {
+                let notify_str = notify
+                    .iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<String>>()
+                    .join(",");
                 rcpt_options.push(RcptParameter::Other {
                     keyword: "NOTIFY".into(),
-                    value: Some(notify.clone()),
+                    value: Some(notify_str),
                 });
             }
             try_smtp!(
-                self.command(Rcpt::new(to_address.clone(), rcpt_options)).await,
+                self.command(Rcpt::new(to_address.clone(), rcpt_options))
+                    .await,
                 self
             );
         }
